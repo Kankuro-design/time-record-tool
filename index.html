@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記録システム（完全版）</title>
+
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f4ff, #ffffff);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        body.dark {
+            background: linear-gradient(135deg, #121212, #1c1c1c);
+            color: #f1f1f1;
+        }
+
+        .app {
+            max-width: 420px;
+            margin: 40px auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s;
+        }
+
+        body.dark .card {
+            background: #1e1e1e;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+        }
+
+        input {
+            background: #f5f7fa;
+        }
+
+        button {
+            background: #4f6ef7;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        /* 状態別カラー（中の背景） */
+        .good {
+            background: #dff5e6;
+            color: #1b7f4d;
+        }
+
+        .warn {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .bad {
+            background: #fde2e2;
+            color: #842029;
+        }
+
+        /* Googleサイト対策：横スクロール防止 */
+        html,
+        body {
+            overflow-x: hidden !important;
+        }
+
+        /* グラフのはみ出し防止 */
+        canvas {
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block;
+        }
+
+        /* スマホでの描画を軽く */
+        .card {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <button id="toggleDark">🌙 ダークモード</button>
+
+    <div class="app">
+        <div class="card" id="box">
+            <h2>時間記録ツール</h2>
+
+            <input type="number" id="numberInput" placeholder="数字を入力">
+
+            <button id="calcBtn">計算</button>
+            <button id="resetBtn">月リセット</button>
+            <p id="totalTime">今月の累積：0</p>
+
+            <div id="message" class="result">
+
+            </div>
+        </div>
+    </div>
+    <div id="recordList">
+        <h3>日ごとの記録一覧</h3>
+        <ul id="list"></ul>
+    </div>
+
+    <canvas id="chart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // -------------------- 初期化 --------------------
+        let monthlyTotal = Number(localStorage.getItem("monthlyTotal")) || 0;
+        let records = JSON.parse(localStorage.getItem("records")) || {};
+        document.getElementById("totalTime").innerText = `今月の累積：${monthlyTotal}`;
+
+        // -------------------- 日付取得 --------------------
+        function getToday() {
+            const d = new Date();
+            const month = d.getMonth() + 1;
+            const day = d.getDate();
+            return `${month}/${day}`;
+        }
+
+        // -------------------- 記録追加 --------------------
+        function addRecord(value) {
+            const today = getToday();
+            records[today] = (records[today] || 0) + value;
+            localStorage.setItem("records", JSON.stringify(records));
+            showList();
+            updateChart();
+        }
+
+        // -------------------- 一覧表示 --------------------
+        function showList() {
+            const ul = document.getElementById("list");
+            ul.innerHTML = "";
+
+            Object.keys(records).forEach(date => {
+                const li = document.createElement("li");
+                li.textContent = `${date}：${records[date]}`;
+                ul.appendChild(li);
+            });
+        }
+
+        // -------------------- 棒グラフ --------------------
+        let chart;
+        function updateChart() {
+            const ctx = document.getElementById("chart");
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: Object.keys(records),
+                    datasets: [{
+                        label: "日ごとの値",
+                        data: Object.values(records)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // -------------------- 計算ボタン --------------------
+
+        document.getElementById("calcBtn").addEventListener("click", () => {
+            document.getElementById("calcBtn").addEventListener("click", () => {
+                const input = Number(document.getElementById("numberInput").value);
+                if (!input) return;
+
+                const day = new Date().getDate();
+
+                // 累積は「入力した数」を足す
+                monthlyTotal += input;
+                localStorage.setItem("monthlyTotal", monthlyTotal);
+
+                // 判定は「累積 ÷ 今日の日付」
+                const result = monthlyTotal / day;
+
+                // 判定条件（指定どおり）
+                let color = "";
+                let warning = "";
+
+                if (result >= 2) {
+                    color = "green";
+                    warning = "それよりも，片手は休息で満たす方がよい（伝道の書4:6）";
+                } else if (result >= 1.6) {
+                    color = "orange";
+                    warning = "時間を有効に使ってください。今は悪い時代だからです。（エフェソス5:16）";
+                } else {
+                    color = "red";
+                    warning = "勤勉な人の計画は必ず成功につながり、せっかちな人は必ず貧乏へと向かう（格言2:5）";
+                }
+
+                // 表示処理
+                const box = document.getElementById("box");
+                const msg = document.getElementById("message");
+
+                msg.className = "result";
+
+                if (result >= 2) {
+                    msg.classList.add("good");
+                    msg.innerText = "良い状態です";
+                } else if (result >= 1.6) {
+                    msg.classList.add("warn");
+                    msg.innerText = "注意が必要です";
+                } else {
+                    msg.classList.add("bad");
+                    msg.innerText = "危険です";
+
+                }
+
+                msg.innerText = warning;
+
+                document.getElementById("totalTime").innerText =
+                    `今月の累積：${monthlyTotal}`;
+
+                // 一覧・グラフ用の記録（入力値）
+                addRecord(input);
+
+                // 入力欄クリア
+                document.getElementById("numberInput").value = "";
+            });
+
+        });
+
+
+
+
+
+
+
+
+        // -------------------- 月リセット --------------------
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            monthlyTotal = 0;
+            records = {};
+            localStorage.setItem("monthlyTotal", 0);
+            localStorage.setItem("records", JSON.stringify({}));
+
+            document.getElementById("message").innerText = "リセットしました";
+            document.getElementById("totalTime").innerText = "今月の累積：0";
+            showList();
+            updateChart();
+        });
+
+        // -------------------- ダークモード --------------------
+        document.getElementById("toggleDark").addEventListener("click", () => {
+            document.body.classList.toggle("dark");
+        });
+
+        // 初期表示
+        showList();
+        updateChart();
+    </script>
+</body>
+
+</html>
