@@ -127,7 +127,7 @@
             <button id="calcBtn">計算</button>
             <button id="resetBtn">月リセット</button>
             <p id="totalTime">今月の累積：0</p>
-
+            <button id="mailBtn">📩記録をメールで送信</button>
             <div id="message" class="result">
 
             </div>
@@ -287,7 +287,36 @@
         document.getElementById("toggleDark").addEventListener("click", () => {
             document.body.classList.toggle("dark");
         });
+        // -------------------- メール送信 --------------------
+        document.getElementById("mailBtn").addEventListener("click", () => {
+            const now = new Date();
+            const month = now.getMonth() + 1;
 
+            const subject = "報告";
+
+            const body =
+                `
+お疲れ様です。
+
+【月】${month}月
+【累積時間】${monthlyTotal}
+【内容】
+研究
+
+以上となります。
+よろしくお願いいたします。
+
+――――――――――
+寛大 白土
+――――――――――`;
+
+            const mailto =
+                "mailto:?" +
+                "subject=" + encodeURIComponent(subject) +
+                "&body=" + encodeURIComponent(body);
+
+            window.location.href = mailto;
+        });
         // 初期表示
         showList();
         updateChart();
@@ -296,3 +325,4 @@
 
 
 </html>
+
