@@ -116,6 +116,9 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
     </style>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f6ef7">
+
 </head>
 
 <body>
@@ -147,9 +150,28 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        const monthKey = getCurrentMonthKey();
+
+let allData = JSON.parse(localStorage.getItem("allData")) || {};
+
+if (!allData[monthKey]) {
+  allData[monthKey] = { total: 0, records: {} };
+}
+
+let monthlyTotal = allData[monthKey].total;
+let records = allData[monthKey].records;
+
+document.getElementById("totalTime").innerText =
+  `今月の累積：${monthlyTotal}`;
+
+
+        function getCurrentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+
         // -------------------- 初期化 --------------------
-        let monthlyTotal = Number(localStorage.getItem("monthlyTotal")) || 0;
-        let records = JSON.parse(localStorage.getItem("records")) || {};
         document.getElementById("totalTime").innerText = `今月の累積：${monthlyTotal}`;
 
         // -------------------- 日付取得 --------------------
@@ -164,7 +186,9 @@
         function addRecord(value) {
             const today = getToday();
             records[today] = (records[today] || 0) + value;
-            localStorage.setItem("records", JSON.stringify(records));
+            allData[monthKey].records = records;
+localStorage.setItem("allData", JSON.stringify(allData));
+
             showList();
             updateChart();
         }
@@ -215,7 +239,12 @@
 
                 // 累積は「入力した数」を足す
                 monthlyTotal += input;
-                localStorage.setItem("monthlyTotal", monthlyTotal);
+
+allData[monthKey].total = monthlyTotal;
+allData[monthKey].records = records;
+
+localStorage.setItem("allData", JSON.stringify(allData));
+
 
                 // 判定は「累積 ÷ 今日の日付」
                 const result = monthlyTotal / day;
@@ -277,14 +306,17 @@
         // -------------------- 月リセット --------------------
         document.getElementById("resetBtn").addEventListener("click", () => {
             monthlyTotal = 0;
-            records = {};
-            localStorage.setItem("monthlyTotal", 0);
-            localStorage.setItem("records", JSON.stringify({}));
+records = {};
 
-            document.getElementById("message").innerText = "リセットしました";
-            document.getElementById("totalTime").innerText = "今月の累積：0";
-            showList();
-            updateChart();
+allData[monthKey] = { total: 0, records: {} };
+localStorage.setItem("allData", JSON.stringify(allData));
+
+document.getElementById("message").innerText = "今月をリセットしました";
+document.getElementById("totalTime").innerText = "今月の累積：0";
+
+showList();
+updateChart();
+
         });
 
         // -------------------- ダークモード --------------------
@@ -296,18 +328,15 @@
             const now = new Date();
             const month = now.getMonth() + 1;
 
-            const subject = "報告";
+            const subject = "野外奉仕報告";
 
             const body =
-                `
-お疲れ様です。
-
+                `お疲れ様です。
 ${month}月の野外奉仕報告です
 時間${monthlyTotal}
 研究
 
 よろしくお願いいたします。
-
 
 `;
 
@@ -326,6 +355,7 @@ ${month}月の野外奉仕報告です
 
 
 </html>
+
 
 
 
