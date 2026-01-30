@@ -1,362 +1,258 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>記録システム</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>時間記録ツール</title>
 
-    <style>
-        body {
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #f0f4ff, #ffffff);
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#e53935">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="記録">
 
-        body.dark {
-            background: linear-gradient(135deg, #121212, #1c1c1c);
-            color: #f1f1f1;
-        }
+  <!-- キャッシュ対策 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
-        .app {
-            max-width: 420px;
-            margin: 40px auto;
-        }
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial;
+      background: linear-gradient(135deg, #f0f4ff, #ffffff);
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
 
-        .card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-            transition: background 0.3s;
-        }
+    body.dark {
+      background: #121212;
+      color: #f1f1f1;
+    }
 
-        body.dark .card {
-            background: #1e1e1e;
-        }
+    .app {
+      max-width: 420px;
+      margin: auto;
+    }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 16px;
-        }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 16px rgba(0,0,0,.1);
+    }
 
-        input,
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 12px;
-            font-size: 16px;
-            border-radius: 10px;
-            border: none;
-        }
+    body.dark .card {
+      background: #1e1e1e;
+    }
 
-        input {
-            background: #f5f7fa;
-        }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
 
-        button {
-            background: #4f6ef7;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
+    button {
+      background: blue;
+      color: white;
+      font-weight: bold;
+    }
 
-        button:hover {
-            opacity: 0.9;
-        }
+    .result {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
 
-        .result {
-            margin-top: 20px;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
+    .good { background: #dff5e6; color: #1b7f4d; }
+    .warn { background: #fff3cd; color: #856404; }
+    .bad  { background: #fde2e2; color: #842029; }
 
-        /* 状態別カラー（中の背景） */
-        .good {
-            background: #dff5e6;
-            color: #1b7f4d;
-        }
-
-        .warn {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .bad {
-            background: #fde2e2;
-            color: #842029;
-        }
-
-        /* Googleサイト対策：横スクロール防止 */
-        html,
-        body {
-            overflow-x: hidden !important;
-        }
-
-        /* グラフのはみ出し防止 */
-        canvas {
-            max-width: 100% !important;
-            width: 100% !important;
-            height: auto !important;
-            display: block;
-        }
-
-        /* スマホでの描画を軽く */
-        .card {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f6ef7">
-
+    ul { padding-left: 20px; }
+    canvas { max-width: 100%; }
+  </style>
 </head>
 
 <body>
 
-    <button id="toggleDark">🌙 ダークモード</button>
+<button id="toggleDark">🌙 ダークモード</button>
 
-    <div class="app">
-        <div class="card" id="box">
-            <h2>時間記録ツール</h2>
+<div class="app">
+  <div class="card">
+    <h2>時間記録ツール</h2>
 
-            <input type="number" id="numberInput" placeholder="数字を入力">
+    <input type="number" id="numberInput" placeholder="時間を入力">
 
-            <button id="calcBtn">計算</button>
-            <button id="resetBtn">月リセット</button>
-            <p id="totalTime">今月の累積：0</p>
-            <button id="mailBtn">📩記録をメールで送信</button>
-            <div id="message" class="result">
+    <button id="calcBtn">記録</button>
+    <button id="resetBtn">今月リセット</button>
 
-            </div>
-        </div>
-    </div>
-    <div id="recordList">
-        <h3>日ごとの記録一覧</h3>
-        <ul id="list"></ul>
-    </div>
+    <p id="totalTime">今月の累積：0</p>
+    <select id="monthSelect"></select>
 
-    <canvas id="chart"></canvas>
+    <button id="mailBtn">📩 メールで送信</button>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div id="message" class="result"></div>
+  </div>
 
-    <script>
-        const monthKey = getCurrentMonthKey();
+  <h3>日ごとの記録</h3>
+  <ul id="list"></ul>
+
+  <canvas id="chart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* ---------- 月キー ---------- */
+function monthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}`;
+}
 
 let allData = JSON.parse(localStorage.getItem("allData")) || {};
+if (!allData[monthKey()]) allData[monthKey()] = { total: 0, records: {} };
 
-if (!allData[monthKey]) {
-  allData[monthKey] = { total: 0, records: {} };
-}
+let monthlyTotal = allData[monthKey()].total;
+let records = allData[monthKey()].records;
 
-let monthlyTotal = allData[monthKey].total;
-let records = allData[monthKey].records;
+document.getElementById("totalTime").innerText = `今月の累積：${monthlyTotal}`;
 
-document.getElementById("totalTime").innerText =
-  `今月の累積：${monthlyTotal}`;
-
-
-        function getCurrentMonthKey() {
+/* ---------- 日付 ---------- */
+function todayKey() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// ----------月一覧----------
+function updateMonthSelect() {
+  const select = document.getElementById("monthSelect");
+  select.innerHTML = "";
+
+  Object.keys(allData).sort().forEach(key => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = key;
+    if (key === monthKey()) option.selected = true;
+    select.appendChild(option);
+  });
 }
 
 
-        // -------------------- 初期化 --------------------
-        document.getElementById("totalTime").innerText = `今月の累積：${monthlyTotal}`;
-
-        // -------------------- 日付取得 --------------------
-        function getToday() {
-            const d = new Date();
-            const month = d.getMonth() + 1;
-            const day = d.getDate();
-            return `${month}/${day}`;
-        }
-
-        // -------------------- 記録追加 --------------------
-        function addRecord(value) {
-            const today = getToday();
-            records[today] = (records[today] || 0) + value;
-            allData[monthKey].records = records;
-localStorage.setItem("allData", JSON.stringify(allData));
-
-            showList();
-            updateChart();
-        }
-
-        // -------------------- 一覧表示 --------------------
-        function showList() {
-            const ul = document.getElementById("list");
-            ul.innerHTML = "";
-
-            Object.keys(records).forEach(date => {
-                const li = document.createElement("li");
-                li.textContent = `${date}：${records[date]}`;
-                ul.appendChild(li);
-            });
-        }
-
-        // -------------------- 棒グラフ --------------------
-        let chart;
-        function updateChart() {
-            const ctx = document.getElementById("chart");
-
-            if (chart) chart.destroy();
-
-            chart = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: Object.keys(records),
-                    datasets: [{
-                        label: "日ごとの値",
-                        data: Object.values(records)
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
-
-        // -------------------- 計算ボタン --------------------
-
-        document.getElementById("calcBtn").addEventListener("click", () => {
-            document.getElementById("calcBtn").addEventListener("click", () => {
-                const input = Number(document.getElementById("numberInput").value);
-                if (!input) return;
-
-                const day = new Date().getDate();
-
-                // 累積は「入力した数」を足す
-                monthlyTotal += input;
-
-allData[monthKey].total = monthlyTotal;
-allData[monthKey].records = records;
-
-localStorage.setItem("allData", JSON.stringify(allData));
 
 
-                // 判定は「累積 ÷ 今日の日付」
-                const result = monthlyTotal / day;
+/* ---------- 一覧 ---------- */
+function showList() {
+  const ul = document.getElementById("list");
+  ul.innerHTML = "";
+  Object.keys(records).forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = `${d}：${records[d]}`;
+    ul.appendChild(li);
+  });
+}
 
-                // 判定条件（指定どおり）
-                let color = "";
-                let warning = "";
+/* ---------- グラフ ---------- */
+let chart;
+function updateChart() {
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(records),
+      datasets: [{
+        data: Object.values(records),
+        backgroundColor: "blue"
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+}
 
-                if (result >= 2) {
-                    color = "green";
-                    warning = "それよりも，片手は休息で満たす方がよい（伝道の書4:6）";
-                } else if (result >= 1.6) {
-                    color = "orange";
-                    warning = "時間を有効に使ってください。今は悪い時代だからです。（エフェソス5:16）";
-                } else {
-                    color = "red";
-                    warning = "勤勉な人の計画は必ず成功につながり、せっかちな人は必ず貧乏へと向かう（格言2:5）";
-                }
+/* ---------- 記録 ---------- */
+document.getElementById("calcBtn").onclick = () => {
+  const v = Number(numberInput.value);
+  if (!v) return;
 
-                // 表示処理
-                const box = document.getElementById("box");
-                const msg = document.getElementById("message");
+  monthlyTotal += v;
+  records[todayKey()] = (records[todayKey()] || 0) + v;
 
-                msg.className = "result";
+  allData[monthKey()] = { total: monthlyTotal, records };
+  localStorage.setItem("allData", JSON.stringify(allData));
 
-                if (result >= 2) {
-                    msg.classList.add("good");
-                    msg.innerText = "良い状態です";
-                } else if (result >= 1.6) {
-                    msg.classList.add("warn");
-                    msg.innerText = "注意が必要です";
-                } else {
-                    msg.classList.add("bad");
-                    msg.innerText = "危険です";
+  const day = new Date().getDate();
+  const result = monthlyTotal / day;
 
-                }
+  const msg = document.getElementById("message");
+  msg.className = "result";
 
-                msg.innerText = warning;
+  if (result >= 2) {
+    msg.classList.add("good");
+    msg.textContent = "それよりも，片手は休息で満たす方がよい（伝道の書4:6）";
+  } else if (result >= 1.6) {
+    msg.classList.add("warn");
+    msg.textContent = "時間を有効に使ってください。今は悪い時代だからです。（エフェソス5:16）";
+  } else {
+    msg.classList.add("bad");
+    msg.textContent = "勤勉な人の計画は必ず成功につながり、せっかちな人は必ず貧乏へと向かう（格言2:5）";
+  }
 
-                document.getElementById("totalTime").innerText =
-                    `今月の累積：${monthlyTotal}`;
+  document.getElementById("totalTime").innerText = `今月の累積：${monthlyTotal}`;
+  numberInput.value = "";
 
-                // 一覧・グラフ用の記録（入力値）
-                addRecord(input);
+  showList();
+  updateChart();
+};
 
-                // 入力欄クリア
-                document.getElementById("numberInput").value = "";
-            });
+/* ---------- リセット ---------- */
+resetBtn.onclick = () => {
+  allData[monthKey()] = { total: 0, records: {} };
+  localStorage.setItem("allData", JSON.stringify(allData));
+  location.reload();
+};
 
-        });
+/* ---------- ダークモード ---------- */
+toggleDark.onclick = () => document.body.classList.toggle("dark");
 
+/* ---------- メール ---------- */
+mailBtn.onclick = () => {
+  const m = new Date().getMonth()+1;
+  const body =
+`お疲れ様です。
+${m}月の野外奉仕報告です
+時間：${monthlyTotal}
+研究：
 
+よろしくお願いいたします。`;
 
-
-
-
-
-
-        // -------------------- 月リセット --------------------
-        document.getElementById("resetBtn").addEventListener("click", () => {
-            monthlyTotal = 0;
-records = {};
-
-allData[monthKey] = { total: 0, records: {} };
-localStorage.setItem("allData", JSON.stringify(allData));
-
-document.getElementById("message").innerText = "今月をリセットしました";
-document.getElementById("totalTime").innerText = "今月の累積：0";
+  location.href = `mailto:?subject=${encodeURIComponent("野外奉仕報告")}&body=${encodeURIComponent(body)}`;
+};
 
 showList();
 updateChart();
+updateMonthSelect();
 
-        });
+// 履歴を表示
+document.getElementById("monthSelect").addEventListener("change", e => {
+  const selected = e.target.value;
 
-        // -------------------- ダークモード --------------------
-        document.getElementById("toggleDark").addEventListener("click", () => {
-            document.body.classList.toggle("dark");
-        });
-        // -------------------- メール送信 --------------------
-        document.getElementById("mailBtn").addEventListener("click", () => {
-            const now = new Date();
-            const month = now.getMonth() + 1;
+  monthlyTotal = allData[selected].total;
+  records = allData[selected].records;
 
-            const subject = "野外奉仕報告";
+  document.getElementById("totalTime").innerText =
+    `今月の累積：${monthlyTotal}`;
 
-            const body =
-                `お疲れ様です。
-${month}月の野外奉仕報告です
-時間${monthlyTotal}
-研究
+  showList();
+  updateChart();
+});
 
-よろしくお願いいたします。
+</script>
 
-`;
-
-            const mailto =
-                "mailto:?" +
-                "subject=" + encodeURIComponent(subject) +
-                "&body=" + encodeURIComponent(body);
-
-            window.location.href = mailto;
-        });
-        // 初期表示
-        showList();
-        updateChart();
-    </script>
 </body>
-
-
 </html>
-
-
-
-
-
