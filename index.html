@@ -110,6 +110,30 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+  function updateStatus() {
+
+  const day = new Date().getDate();
+  const result = monthlyTotal / day;
+
+  const msg = document.getElementById("message");
+  msg.className = "result";
+
+  if (result >= 2) {
+    msg.classList.add("good");
+    msg.innerText = "良い状態です";
+  }
+
+  else if (result >= 1.6) {
+    msg.classList.add("warn");
+    msg.innerText = "注意が必要です";
+  }
+
+  else {
+    msg.classList.add("bad");
+    msg.innerText = "危険です";
+  }
+
+}
 /* ---------- 月キー ---------- */
 function monthKey() {
   const d = new Date();
@@ -208,6 +232,7 @@ document.getElementById("calcBtn").onclick = () => {
 
   showList();
   updateChart();
+  updateStatus();
 };
 
 /* ---------- リセット ---------- */
@@ -237,6 +262,7 @@ ${m}月の野外奉仕報告です
 showList();
 updateChart();
 updateMonthSelect();
+updateStatus();
 
 // 履歴を表示
 document.getElementById("monthSelect").addEventListener("change", e => {
@@ -250,9 +276,11 @@ document.getElementById("monthSelect").addEventListener("change", e => {
 
   showList();
   updateChart();
+  updateStatus();
 });
 
 </script>
 
 </body>
 </html>
+
